@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, Platform, TextStyle } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { ArrowLeft, RotateCw, Check, X as XIcon } from 'lucide-react-native';
 
@@ -47,8 +47,15 @@ export default function Flashcards() {
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
 
+  const generateNewQuestion = useCallback(() => {
+    const newQuestion = generateQuestion(operation as Operation);
+    setQuestion(newQuestion);
+    setUserAnswer('');
+    setIsCorrect(null);
+    setShowFeedback(false);
+  }, [operation]);
+
   const checkAnswer = useCallback(() => {
-    console.log('Checking answer...'); // Debug log
     const numericAnswer = parseFloat(userAnswer);
     const isAnswerCorrect = !isNaN(numericAnswer) &&
       (operation === 'division'
@@ -58,25 +65,13 @@ export default function Flashcards() {
     setIsCorrect(isAnswerCorrect);
     setShowFeedback(true);
     setUserAnswer('');
-    console.log('user answer', userAnswer)
-    console.log('question answer', question.answer)
-    console.log('is correct', isAnswerCorrect)
 
     if (isAnswerCorrect) {
       setTimeout(() => {
         generateNewQuestion();
       }, 1500);
     }
-  }, [userAnswer, question, operation]);
-
-  const generateNewQuestion = useCallback(() => {
-    const newQuestion = generateQuestion(operation as Operation);
-    console.log('New question generated:', newQuestion); // Debug log
-    setQuestion(newQuestion);
-    setUserAnswer('');
-    setIsCorrect(null);
-    setShowFeedback(false);
-  }, [operation]);
+  }, [userAnswer, operation, question.answer, generateNewQuestion]);
 
   const handleInputChange = (text: string) => {
     const sanitizedText = text.replace(/[^0-9.-]/g, '');
@@ -90,41 +85,37 @@ export default function Flashcards() {
     setUserAnswer(text);
   };
 
-  // Debug log for rendering
   const questionString = `${question.num1} ${getOperationSymbol(operation as Operation)} ${question.num2} = `
-  console.log(questionString)
-  console.log('answer', userAnswer)
-
-  console.log('answer length', userAnswer.length)
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+    <View style={viewStyles.container}>
+      <View style={viewStyles.header}>
+        <Pressable onPress={() => router.back()} style={viewStyles.backButton}>
           <ArrowLeft size={24} color="#212529" />
         </Pressable>
-        <Text style={styles.title}>{operation.charAt(0).toUpperCase() + operation.slice(1)}</Text>
+        <Text style={textStyles.title}>{operation.charAt(0).toUpperCase() + operation.slice(1)}</Text>
         <Pressable
           onPress={generateNewQuestion}
-          style={styles.nextButton}
+          style={viewStyles.nextButton}
           accessibilityLabel="Generate new question"
         >
           <RotateCw size={24} color="#212529" />
         </Pressable>
       </View>
 
-      <View style={styles.problemContainer}>
-        <View style={styles.problem}>
-          <Text style={styles.questionText}>
+      <View style={viewStyles.problemContainer}>
+        <View style={viewStyles.problem}>
+          <Text style={textStyles.questionText}>
             {question ? questionString : 'Loading...'}
           </Text>
           <TextInput
             style={[
-              styles.input,
+              textStyles.input,
               Platform.OS === 'web' && styles.webInput,
-              showFeedback && (isCorrect ? styles.correctInput : styles.incorrectInput)
+              showFeedback && (isCorrect ? textStyles.correctInput : textStyles.incorrectInput)
             ]}
             value={userAnswer}
+            maxLength={2}
             onChangeText={handleInputChange}
             keyboardType={Platform.OS === 'web' ? 'numeric' : 'decimal-pad'}
             onSubmitEditing={checkAnswer}
@@ -132,24 +123,24 @@ export default function Flashcards() {
         </View>
 
         <Pressable
-          style={styles.checkButton}
+          style={viewStyles.checkButton}
           onPress={checkAnswer}
-        // disabled={userAnswer.length === 0}
+          disabled={userAnswer.length === 0}
         >
-          <Text style={styles.checkButtonText}>Check Answer</Text>
+          <Text style={textStyles.checkButtonText}>Check Answer</Text>
         </Pressable>
 
         {showFeedback && (
-          <View style={[styles.feedback, isCorrect ? styles.correctFeedback : styles.incorrectFeedback]}>
+          <View style={[viewStyles.feedback, isCorrect ? viewStyles.correctFeedback : viewStyles.incorrectFeedback]}>
             {isCorrect ? (
               <>
                 <Check size={24} color="#4CAF50" />
-                <Text style={[styles.feedbackText, styles.correctText]}>Correct!</Text>
+                <Text style={[textStyles.feedbackText, textStyles.correctText]}>Correct!</Text>
               </>
             ) : (
               <>
                 <XIcon size={24} color="#F44336" />
-                <Text style={[styles.feedbackText, styles.incorrectText]}>
+                <Text style={[textStyles.feedbackText, textStyles.incorrectText]}>
                   Try again!
                 </Text>
               </>
@@ -158,12 +149,74 @@ export default function Flashcards() {
         )}
       </View>
 
-      <Text style={styles.hint}>Enter your answer and press Check Answer</Text>
+      <Text style={textStyles.hint}>Enter your answer and press Check Answer</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  webInput: {
+    outlineStyle: 'none',
+  } as TextStyle
+});
+
+const textStyles = StyleSheet.create({
+  title: {
+    fontSize: 24,
+    fontFamily: 'Nunito-Bold',
+    color: '#212529',
+  },
+  hint: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
+    fontFamily: 'Nunito-Regular',
+    color: '#6C757D',
+  },
+  feedbackText: {
+    fontSize: 18,
+    fontFamily: 'Nunito-Bold',
+    marginLeft: 10,
+  },
+  correctText: {
+    color: '#4CAF50',
+  },
+  incorrectText: {
+    color: '#F44336',
+  },
+  checkButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontFamily: 'Nunito-Bold',
+  },
+  input: {
+    fontSize: 36,
+    fontFamily: 'Nunito-Bold',
+    color: '#212529',
+    borderWidth: 2,
+    borderColor: '#DEE2E6',
+    borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    minWidth: 40,
+    textAlign: 'center',
+  },
+  correctInput: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#E8F5E9',
+  },
+  incorrectInput: {
+    borderColor: '#F44336',
+    backgroundColor: '#FFEBEE',
+  },
+  questionText: {
+    fontSize: 48,
+    fontFamily: 'Nunito-Bold',
+    color: '#212529',
+  },
+});
+
+const viewStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
@@ -192,10 +245,29 @@ const styles = StyleSheet.create({
     shadowRadius: 1.41,
     elevation: 2,
   },
-  title: {
-    fontSize: 24,
-    fontFamily: 'Nunito-Bold',
-    color: '#212529',
+  feedback: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+    padding: 15,
+    borderRadius: 10,
+    width: '100%',
+  },
+  correctFeedback: {
+    backgroundColor: '#E8F5E9',
+  },
+  incorrectFeedback: {
+    backgroundColor: '#FFEBEE',
+  },
+  checkButton: {
+    backgroundColor: '#4ECDC4',
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 25,
+    marginTop: 20,
+  },
+  checkButtonDisabled: {
+    backgroundColor: '#B2DFDB',
   },
   problemContainer: {
     flex: 1,
@@ -221,80 +293,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 30,
-  },
-  questionText: {
-    fontSize: 48,
-    fontFamily: 'Nunito-Bold',
-    color: '#212529',
-  },
-  input: {
-    fontSize: 36,
-    fontFamily: 'Nunito-Bold',
-    color: '#212529',
-    borderWidth: 2,
-    borderColor: '#DEE2E6',
-    borderRadius: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    minWidth: 40,
-    textAlign: 'center',
-  },
-  webInput: {
-    outlineStyle: 'none',
-  },
-  correctInput: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#E8F5E9',
-  },
-  incorrectInput: {
-    borderColor: '#F44336',
-    backgroundColor: '#FFEBEE',
-  },
-  checkButton: {
-    backgroundColor: '#4ECDC4',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 25,
-    marginTop: 20,
-  },
-  checkButtonDisabled: {
-    backgroundColor: '#B2DFDB',
-  },
-  checkButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontFamily: 'Nunito-Bold',
-  },
-  feedback: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 20,
-    padding: 15,
-    borderRadius: 10,
-    width: '100%',
-  },
-  correctFeedback: {
-    backgroundColor: '#E8F5E9',
-  },
-  incorrectFeedback: {
-    backgroundColor: '#FFEBEE',
-  },
-  feedbackText: {
-    fontSize: 18,
-    fontFamily: 'Nunito-Bold',
-    marginLeft: 10,
-  },
-  correctText: {
-    color: '#4CAF50',
-  },
-  incorrectText: {
-    color: '#F44336',
-  },
-  hint: {
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 16,
-    fontFamily: 'Nunito-Regular',
-    color: '#6C757D',
   },
 });
