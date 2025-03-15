@@ -15,7 +15,7 @@ const screenWidth = Dimensions.get('window').width;
 export default function Dashboard() {
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Math Adventure</Text>
+      <Text style={styles.title}>Gitter Flashcards</Text>
       <Text style={styles.subtitle}>Choose your challenge!</Text>
 
       <View style={styles.gridContainer}>
